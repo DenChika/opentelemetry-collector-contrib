@@ -23,7 +23,6 @@ func TestFactory_CreateLogsExporter(t *testing.T) {
 	factory := NewFactory()
 	params := exportertest.NewNopCreateSettings()
 	cfg := config.WithDefaultConfig(func(c *config.Config) {
-		c.Endpoint = "grpc://localhost:2136"
 		c.AuthType = authType
 	})
 

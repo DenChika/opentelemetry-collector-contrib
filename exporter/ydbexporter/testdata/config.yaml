@@ -1,8 +1,8 @@
 ydb:
-  endpoint: grpcs://localhost:2135
+  endpoint: grpc://localhost:2136
 ydb/full:
   auth_type: accessToken
-  endpoint: grpcs://localhost:2135
+  endpoint: grpc://localhost:2136
   username: foo
   password: bar
   access_token: token
