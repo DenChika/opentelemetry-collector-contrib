@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"os"
 	"testing"
 	"time"
 
@@ -19,6 +20,9 @@ import (
 const defaultEndpoint = "grpc://localhost:2136"
 
 func TestTracesExporter_New(t *testing.T) {
+	if os.Getenv("RUN_DOCKER_TESTS") == "" {
+		t.Skip()
+	}
 	type validate func(*testing.T, *Exporter, error)
 
 	success := func() validate {
@@ -46,6 +50,9 @@ func TestTracesExporter_New(t *testing.T) {
 }
 
 func TestTracesExporter_createTable(t *testing.T) {
+	if os.Getenv("RUN_DOCKER_TESTS") == "" {
+		t.Skip()
+	}
 	createTable := func(t *testing.T, endpoint string) error {
 		exporter, err := NewExporter(zaptest.NewLogger(t), withTestExporterConfig()(endpoint))
 		require.NoError(t, err)
@@ -59,6 +66,9 @@ func TestTracesExporter_createTable(t *testing.T) {
 }
 
 func TestTracesExporter_createRecord(t *testing.T) {
+	if os.Getenv("RUN_DOCKER_TESTS") == "" {
+		t.Skip()
+	}
 	t.Run("create record success", func(t *testing.T) {
 		exporter := newTestTracesExporter(t, defaultEndpoint)
 		_, err := exporter.createRecord(ptrace.NewResourceSpans(), ptrace.NewScopeSpans(), ptrace.NewSpan())
@@ -67,6 +77,9 @@ func TestTracesExporter_createRecord(t *testing.T) {
 }
 
 func TestTracesExporter_PushData(t *testing.T) {
+	if os.Getenv("RUN_DOCKER_TESTS") == "" {
+		t.Skip()
+	}
 	t.Run("push data success", func(t *testing.T) {
 		exporter := newTestTracesExporter(t, defaultEndpoint)
 		mustPushTracesData(t, exporter, simpleTraces(1))

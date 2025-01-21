@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/exporter/exportertest"
+	"os"
 	"testing"
 )
 
@@ -20,6 +21,9 @@ func TestCreateDefaultConfig(t *testing.T) {
 }
 
 func TestFactory_CreateLogsExporter(t *testing.T) {
+	if os.Getenv("RUN_DOCKER_TESTS") == "" {
+		t.Skip()
+	}
 	factory := NewFactory()
 	params := exportertest.NewNopCreateSettings()
 	cfg := config.WithDefaultConfig(func(c *config.Config) {
@@ -34,6 +38,9 @@ func TestFactory_CreateLogsExporter(t *testing.T) {
 }
 
 func TestFactory_CreateTracesExporter(t *testing.T) {
+	if os.Getenv("RUN_DOCKER_TESTS") == "" {
+		t.Skip()
+	}
 	factory := NewFactory()
 	params := exportertest.NewNopCreateSettings()
 	cfg := config.WithDefaultConfig(func(c *config.Config) {
@@ -48,6 +55,9 @@ func TestFactory_CreateTracesExporter(t *testing.T) {
 }
 
 func TestFactory_CreateMetricsExporter(t *testing.T) {
+	if os.Getenv("RUN_DOCKER_TESTS") == "" {
+		t.Skip()
+	}
 	factory := NewFactory()
 	params := exportertest.NewNopCreateSettings()
 	cfg := config.WithDefaultConfig(func(c *config.Config) {

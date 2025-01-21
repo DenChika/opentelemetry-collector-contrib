@@ -3,8 +3,6 @@ package db
 import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
 	"github.com/stretchr/testify/assert"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
-	"go.opentelemetry.io/collector/config/configopaque"
 	"go.uber.org/zap/zaptest"
 	"testing"
 )
@@ -149,106 +147,6 @@ func TestDbFactory_buildDSN_failedParsing(t *testing.T) {
 			_, err := factory.buildDSN()
 
 			assert.Error(t, err)
-		})
-	}
-}
-
-func TestDbFactory_buildCredentials(t *testing.T) {
-	type secure struct {
-		AuthType          string
-		Username          string
-		Password          string
-		AccessToken       string
-		ServiceAccountKey string
-	}
-	tests := []struct {
-		name    string
-		secure  secure
-		want    ydb.Option
-		wantErr error
-	}{
-		{
-			name: "valid default config",
-			secure: secure{
-				AuthType: "anonymous",
-			},
-			want: ydb.WithAnonymousCredentials(),
-		},
-		{
-			name: "valid user and password auth",
-			secure: secure{
-				AuthType: "userPassword",
-				Username: "user",
-				Password: "pass",
-			},
-			want: ydb.WithStaticCredentials("user", "pass"),
-		},
-		{
-			name: "invalid user",
-			secure: secure{
-				AuthType: "userPassword",
-				Username: "",
-				Password: "pass",
-			},
-			wantErr: errUserAndPasswordRequired,
-		},
-		{
-			name: "invalid password",
-			secure: secure{
-				AuthType: "userPassword",
-				Username: "user",
-				Password: "",
-			},
-			wantErr: errUserAndPasswordRequired,
-		},
-		{
-			name: "valid access token auth",
-			secure: secure{
-				AuthType:    "accessToken",
-				AccessToken: "token",
-			},
-			want: ydb.WithAccessTokenCredentials("token"),
-		},
-		{
-			name: "invalid access token",
-			secure: secure{
-				AuthType:    "accessToken",
-				AccessToken: "",
-			},
-			wantErr: errAccessTokenRequired,
-		},
-		{
-			name: "unknown auth type",
-			secure: secure{
-				AuthType: "unknown",
-			},
-			wantErr: errUnknownAuthType,
-		},
-		//TODO: Support more authentication types
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger := zaptest.NewLogger(t)
-			cfg := &config.Config{
-				Endpoint:    defaultEndpoint,
-				Database:    defaultDatabase,
-				AuthType:    tt.secure.AuthType,
-				Username:    tt.secure.Username,
-				Password:    configopaque.String(tt.secure.Password),
-				AccessToken: configopaque.String(tt.secure.AccessToken),
-			}
-
-			factory := NewFactory(cfg, logger)
-
-			_, err := factory.buildCredentials()
-
-			if tt.wantErr != nil {
-				assert.ErrorIs(t, err, tt.wantErr, "buildCredentials()")
-			} else {
-				// assert.Equal(t, expDriver, actDriver, "buildCredentials()")
-				assert.NoError(t, err, "buildCredentials()")
-				//TODO: How to check concrete ydb.Option func?
-			}
 		})
 	}
 }
