@@ -126,19 +126,19 @@ func (e *Exporter) createRecord(spans ptrace.ResourceSpans, scopeSpans ptrace.Sc
 	duration := span.EndTimestamp().AsTime().Sub(startTime)
 
 	spanAttributes := span.Attributes().AsRaw()
-	spanAttributesJson, err := json.Marshal(spanAttributes)
+	spanAttributesJSON, err := json.Marshal(spanAttributes)
 	if err != nil {
 		return nil, err
 	}
 
 	events := convertEvents(span.Events())
-	eventsJson, err := json.Marshal(events)
+	eventsJSON, err := json.Marshal(events)
 	if err != nil {
 		return nil, err
 	}
 
 	links := convertLinks(span.Links())
-	linksJson, err := json.Marshal(links)
+	linksJSON, err := json.Marshal(links)
 	if err != nil {
 		return nil, err
 	}
@@ -155,12 +155,12 @@ func (e *Exporter) createRecord(spans ptrace.ResourceSpans, scopeSpans ptrace.Sc
 		types.StructFieldValue("resourceAttributes", types.JSONDocumentValueFromBytes(resourceAttributes)),
 		types.StructFieldValue("scopeName", types.UTF8Value(scopeSpans.Scope().Name())),
 		types.StructFieldValue("scopeVersion", types.UTF8Value(scopeSpans.Scope().Version())),
-		types.StructFieldValue("spanAttributes", types.JSONDocumentValueFromBytes(spanAttributesJson)),
+		types.StructFieldValue("spanAttributes", types.JSONDocumentValueFromBytes(spanAttributesJSON)),
 		types.StructFieldValue("duration", types.Uint64Value(uint64(duration.Nanoseconds()))),
 		types.StructFieldValue("statusCode", types.UTF8Value(traceutil.StatusCodeStr(span.Status().Code()))),
 		types.StructFieldValue("statusMessage", types.UTF8Value(span.Status().Message())),
-		types.StructFieldValue("events", types.JSONDocumentValueFromBytes(eventsJson)),
-		types.StructFieldValue("links", types.JSONDocumentValueFromBytes(linksJson)),
+		types.StructFieldValue("events", types.JSONDocumentValueFromBytes(eventsJSON)),
+		types.StructFieldValue("links", types.JSONDocumentValueFromBytes(linksJSON)),
 	), nil
 }
 
@@ -185,8 +185,8 @@ func convertEvents(events ptrace.SpanEventSlice) []Event {
 }
 
 type Link struct {
-	TraceId    string         `json:"traceId"`
-	SpanId     string         `json:"spanId"`
+	TraceID    string         `json:"traceId"`
+	SpanID     string         `json:"spanId"`
 	State      string         `json:"state"`
 	Attributes map[string]any `json:"attributes"`
 }
@@ -197,8 +197,8 @@ func convertLinks(links ptrace.SpanLinkSlice) []Link {
 		link := links.At(i)
 		linksList = append(linksList,
 			Link{
-				TraceId:    traceutil.TraceIDToHexOrEmptyString(link.TraceID()),
-				SpanId:     traceutil.SpanIDToHexOrEmptyString(link.SpanID()),
+				TraceID:    traceutil.TraceIDToHexOrEmptyString(link.TraceID()),
+				SpanID:     traceutil.SpanIDToHexOrEmptyString(link.SpanID()),
 				State:      link.TraceState().AsRaw(),
 				Attributes: link.Attributes().AsRaw(),
 			})

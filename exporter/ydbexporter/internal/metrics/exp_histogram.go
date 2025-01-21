@@ -2,8 +2,10 @@ package metrics
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
+
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
+
+	"github.com/google/uuid"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.opentelemetry.io/collector/pdata/pmetric"

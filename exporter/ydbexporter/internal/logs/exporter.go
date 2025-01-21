@@ -6,6 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/db"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/traceutil"
+
 	"github.com/google/uuid"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
@@ -13,15 +17,11 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	conventions "go.opentelemetry.io/collector/semconv/v1.18.0"
 	"go.uber.org/zap"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/db"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/traceutil"
 )
 
 var (
 	// TODO: move this error to better place
-	marshalError = errors.New("cannot marshal data to JSON")
+	errCannotMarshal = errors.New("cannot marshal data to JSON")
 )
 
 type Exporter struct {
@@ -87,11 +87,11 @@ func (e *Exporter) createRecord(resourceLog plog.ResourceLogs, record plog.LogRe
 	}
 	recordAttributes, err := json.Marshal(record.Attributes().AsRaw())
 	if err != nil {
-		return nil, fmt.Errorf("%w: %q", marshalError, err)
+		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
 	}
 	scopeAttributes, err := json.Marshal(scopeLog.Scope().Attributes().AsRaw())
 	if err != nil {
-		return nil, fmt.Errorf("%w: %q", marshalError, err)
+		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
 	}
 
 	return types.StructValue(

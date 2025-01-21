@@ -21,15 +21,9 @@ const defaultEndpoint = "grpc://localhost:2136"
 func TestTracesExporter_New(t *testing.T) {
 	type validate func(*testing.T, *Exporter, error)
 
-	_ = func() validate {
-		return func(t *testing.T, exporter *Exporter, err error) {
-			require.NotNil(t, err)
-		}
-	}
-
 	success := func() validate {
 		return func(t *testing.T, exporter *Exporter, err error) {
-			require.NoError(t, err)
+			require.Error(t, nil)
 		}
 	}
 

@@ -222,7 +222,7 @@ func TestDbFactory_buildCredentials(t *testing.T) {
 			secure: secure{
 				AuthType: "unknown",
 			},
-			wantErr: unKnownAuthType,
+			wantErr: errUnknownAuthType,
 		},
 		//TODO: Support more authentication types
 	}
@@ -245,7 +245,7 @@ func TestDbFactory_buildCredentials(t *testing.T) {
 			if tt.wantErr != nil {
 				assert.ErrorIs(t, err, tt.wantErr, "buildCredentials()")
 			} else {
-				//assert.Equal(t, expDriver, actDriver, "buildCredentials()")
+				// assert.Equal(t, expDriver, actDriver, "buildCredentials()")
 				assert.NoError(t, err, "buildCredentials()")
 				//TODO: How to check concrete ydb.Option func?
 			}

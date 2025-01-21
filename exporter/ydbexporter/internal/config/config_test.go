@@ -1,15 +1,17 @@
 package config
 
 import (
+	"path/filepath"
+	"testing"
+	"time"
+
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/metadata"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
-	"path/filepath"
-	"testing"
-	"time"
 )
 
 func TestLoadConfig(t *testing.T) {

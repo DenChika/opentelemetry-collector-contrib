@@ -131,8 +131,8 @@ func getValue(dp pmetric.NumberDataPoint) float64 {
 type Exemplar struct {
 	Timestamp          time.Time      `json:"timestamp"`
 	Value              float64        `json:"value"`
-	SpanId             string         `json:"spanId"`
-	TraceId            string         `json:"traceId"`
+	SpanID             string         `json:"spanId"`
+	TraceID            string         `json:"traceId"`
 	FilteredAttributes map[string]any `json:"filteredAttributes,omitempty"`
 }
 
@@ -145,8 +145,8 @@ func convertExemplars(exemplars pmetric.ExemplarSlice) []Exemplar {
 				Timestamp:          e.Timestamp().AsTime(),
 				FilteredAttributes: e.FilteredAttributes().AsRaw(),
 				Value:              e.DoubleValue(),
-				SpanId:             traceutil.SpanIDToHexOrEmptyString(e.SpanID()),
-				TraceId:            traceutil.TraceIDToHexOrEmptyString(e.TraceID()),
+				SpanID:             traceutil.SpanIDToHexOrEmptyString(e.SpanID()),
+				TraceID:            traceutil.TraceIDToHexOrEmptyString(e.TraceID()),
 			})
 	}
 	return values

@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"go.uber.org/zap"
-	"net/url"
 )
 
 type AuthType string
@@ -23,7 +24,7 @@ const (
 var (
 	errUserAndPasswordRequired = errors.New("username and password required for userPassword authentication")
 	errAccessTokenRequired     = errors.New("access token required for accessToken authentication")
-	unKnownAuthType            = errors.New("unknown authentication type")
+	errUnknownAuthType         = errors.New("unknown authentication type")
 	errOnlyGrpcSupport         = errors.New("only gRPC and gRPCs schemes are supported")
 	errEndpointIsNotSpecified  = errors.New("endpoint is not specified")
 )
@@ -70,7 +71,7 @@ func (f *Factory) buildCredentials() (ydb.Option, error) {
 		return ydb.WithAccessTokenCredentials(string(f.cfg.AccessToken)), nil
 	// TODO: Support more authentication types.
 	default:
-		return nil, fmt.Errorf("%w: %q", unKnownAuthType, f.cfg.AuthType)
+		return nil, fmt.Errorf("%w: %q", errUnknownAuthType, f.cfg.AuthType)
 	}
 }
 

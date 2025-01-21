@@ -1,10 +1,11 @@
 package config
 
 import (
+	"time"
+
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
-	"time"
 )
 
 const (

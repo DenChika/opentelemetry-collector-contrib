@@ -3,16 +3,16 @@ package ydbexporter
 import (
 	"context"
 	"fmt"
+
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
-
-	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/exporter"
-	"go.opentelemetry.io/collector/exporter/exporterhelper"
-
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/logs"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/metadata"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/metrics"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/traces"
+
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 // NewFactory creates a factory for YDB exporter.
