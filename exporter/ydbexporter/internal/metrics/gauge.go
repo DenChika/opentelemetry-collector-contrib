@@ -37,6 +37,9 @@ func (g *gauge) createTableOptions(config *config.TableConfig) []options.CreateT
 		options.WithColumn("metricDescription", types.Optional(types.TypeUTF8)),
 		options.WithColumn("metricUnit", types.Optional(types.TypeUTF8)),
 		options.WithColumn("attributes", types.Optional(types.TypeJSONDocument)),
+		options.WithColumn("startTimeUnix", types.Optional(types.TypeTimestamp)),
+		options.WithColumn("timeUnix", types.Optional(types.TypeTimestamp)),
+
 		options.WithColumn("value", types.Optional(types.TypeDouble)),
 		options.WithColumn("flags", types.Optional(types.TypeUint32)),
 		options.WithColumn("exemplars", types.Optional(types.TypeJSONDocument)),
@@ -101,6 +104,8 @@ func (g *gauge) createRecords(resourceMetrics pmetric.ResourceMetrics, scopeMetr
 			types.StructFieldValue("metricDescription", types.UTF8Value(metric.Description())),
 			types.StructFieldValue("metricUnit", types.UTF8Value(metric.Unit())),
 			types.StructFieldValue("attributes", types.JSONDocumentValueFromBytes(attributes)),
+			types.StructFieldValue("startTimeUnix", types.DatetimeValueFromTime(dp.StartTimestamp().AsTime())),
+			types.StructFieldValue("timeUnix", types.DatetimeValueFromTime(dp.Timestamp().AsTime())),
 			types.StructFieldValue("value", types.DoubleValue(getValue(dp))),
 			types.StructFieldValue("flags", types.Uint32Value(uint32(dp.Flags()))),
 			types.StructFieldValue("exemplars", types.JSONDocumentValueFromBytes(exemplars)),
@@ -139,7 +144,7 @@ func convertExemplars(exemplars pmetric.ExemplarSlice) []Exemplar {
 			Exemplar{
 				Timestamp:          e.Timestamp().AsTime(),
 				FilteredAttributes: e.FilteredAttributes().AsRaw(),
-				Value:              333.0,
+				Value:              e.DoubleValue(),
 				SpanId:             traceutil.SpanIDToHexOrEmptyString(e.SpanID()),
 				TraceId:            traceutil.TraceIDToHexOrEmptyString(e.TraceID()),
 			})

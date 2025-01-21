@@ -35,6 +35,9 @@ func (g *sum) createTableOptions(config *config.TableConfig) []options.CreateTab
 		options.WithColumn("metricDescription", types.Optional(types.TypeUTF8)),
 		options.WithColumn("metricUnit", types.Optional(types.TypeUTF8)),
 		options.WithColumn("attributes", types.Optional(types.TypeJSONDocument)),
+		options.WithColumn("startTimeUnix", types.Optional(types.TypeTimestamp)),
+		options.WithColumn("timeUnix", types.Optional(types.TypeTimestamp)),
+
 		options.WithColumn("value", types.Optional(types.TypeDouble)),
 		options.WithColumn("flags", types.Optional(types.TypeUint32)),
 		options.WithColumn("aggTemp", types.Optional(types.TypeInt32)),
@@ -76,7 +79,13 @@ func (g *sum) createRecords(resourceMetrics pmetric.ResourceMetrics, scopeMetric
 	dataPoints := metric.Sum().DataPoints()
 	for i := 0; i < dataPoints.Len(); i++ {
 		dp := metric.Sum().DataPoints().At(i)
+
 		attributes, err := json.Marshal(dp.Attributes().AsRaw())
+		if err != nil {
+			return nil, err
+		}
+
+		exemplars, err := json.Marshal(convertExemplars(dp.Exemplars()))
 		if err != nil {
 			return nil, err
 		}
@@ -95,10 +104,13 @@ func (g *sum) createRecords(resourceMetrics pmetric.ResourceMetrics, scopeMetric
 			types.StructFieldValue("metricDescription", types.UTF8Value(metric.Description())),
 			types.StructFieldValue("metricUnit", types.UTF8Value(metric.Unit())),
 			types.StructFieldValue("attributes", types.JSONDocumentValueFromBytes(attributes)),
+			types.StructFieldValue("startTimeUnix", types.DatetimeValueFromTime(dp.StartTimestamp().AsTime())),
+			types.StructFieldValue("timeUnix", types.DatetimeValueFromTime(dp.Timestamp().AsTime())),
 			types.StructFieldValue("value", types.DoubleValue(getValue(dp))),
 			types.StructFieldValue("flags", types.Uint32Value(uint32(dp.Flags()))),
 			types.StructFieldValue("aggTemp", types.Int32Value(int32(metric.Sum().AggregationTemporality()))),
 			types.StructFieldValue("isMonotonic", types.BoolValue(metric.Sum().IsMonotonic())),
+			types.StructFieldValue("exemplars", types.JSONDocumentValueFromBytes(exemplars)),
 		)
 		records = append(records, record)
 	}

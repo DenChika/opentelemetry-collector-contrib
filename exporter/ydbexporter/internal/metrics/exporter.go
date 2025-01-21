@@ -18,8 +18,11 @@ import (
 
 var (
 	supportedExporters = map[pmetric.MetricType]exporter{
-		pmetric.MetricTypeGauge: &gauge{},
-		pmetric.MetricTypeSum:   &sum{},
+		pmetric.MetricTypeGauge:                &gauge{},
+		pmetric.MetricTypeHistogram:            &histogram{},
+		pmetric.MetricTypeExponentialHistogram: &expHistogram{},
+		pmetric.MetricTypeSum:                  &sum{},
+		pmetric.MetricTypeSummary:              &summary{},
 	}
 )
 
