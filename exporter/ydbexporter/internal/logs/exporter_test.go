@@ -63,7 +63,7 @@ func TestLogsExporter_createTable(t *testing.T) {
 	})
 }
 
-func TestLogsExporter_createRecord(t *testing.T) {
+func TestLogsExporter_PushData(t *testing.T) {
 	t.Run("test check records metadata", func(t *testing.T) {
 		assertRecordData(t, func(t *testing.T, exporter *loggingExporter) {
 			mustPushLogsData(t, exporter, simpleLogs(1))
@@ -126,10 +126,7 @@ func TestLogsExporter_createRecord(t *testing.T) {
 			require.Equal(t, "ydb", v.Str())
 		})
 	})
-}
-
-func TestLogsExporter_PushData(t *testing.T) {
-	t.Run("push data success", func(t *testing.T) {
+	t.Run("push data more than once success", func(t *testing.T) {
 		exporter := newTestLogsExporter(t, defaultEndpoint)
 		loggingExporter := newLoggingExporter(exporter)
 

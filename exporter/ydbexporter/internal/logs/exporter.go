@@ -80,44 +80,6 @@ func (e *Exporter) PushData(ctx context.Context, ld plog.Logs) error {
 	return e.client.BulkUpsert(ctx, e.cfg.Name, rows)
 }
 
-func (e *Exporter) createRecord(resourceLog plog.ResourceLogs, record plog.LogRecord, scopeLog plog.ScopeLogs) (types.Value, error) {
-	var serviceName string
-	if v, ok := resourceLog.Resource().Attributes().Get(conventions.AttributeServiceName); ok {
-		serviceName = v.Str()
-	}
-	recordAttributes, err := json.Marshal(record.Attributes().AsRaw())
-	if err != nil {
-		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
-	}
-	scopeAttributes, err := json.Marshal(scopeLog.Scope().Attributes().AsRaw())
-	if err != nil {
-		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
-	}
-	resourceAttributes, err := json.Marshal(resourceLog.Resource().Attributes().AsRaw())
-	if err != nil {
-		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
-	}
-
-	return types.StructValue(
-		types.StructFieldValue("timestamp", types.TimestampValueFromTime(record.Timestamp().AsTime())),
-		types.StructFieldValue("uuid", types.UTF8Value(uuid.New().String())),
-		types.StructFieldValue("traceId", types.UTF8Value(traceutil.TraceIDToHexOrEmptyString(record.TraceID()))),
-		types.StructFieldValue("spanId", types.UTF8Value(traceutil.SpanIDToHexOrEmptyString(record.SpanID()))),
-		types.StructFieldValue("traceFlags", types.Uint32Value(uint32(record.Flags()))),
-		types.StructFieldValue("severityText", types.UTF8Value(record.SeverityText())),
-		types.StructFieldValue("severityNumber", types.Int32Value(int32(record.SeverityNumber()))),
-		types.StructFieldValue("serviceName", types.UTF8Value(serviceName)),
-		types.StructFieldValue("body", types.OptionalValue(types.UTF8Value(record.Body().AsString()))),
-		types.StructFieldValue("resourceSchemaUrl", types.UTF8Value(resourceLog.SchemaUrl())),
-		types.StructFieldValue("resourceAttributes", types.JSONDocumentValueFromBytes(resourceAttributes)),
-		types.StructFieldValue("scopeSchemaUrl", types.UTF8Value(scopeLog.SchemaUrl())),
-		types.StructFieldValue("scopeName", types.UTF8Value(scopeLog.Scope().Name())),
-		types.StructFieldValue("scopeVersion", types.UTF8Value(scopeLog.Scope().Version())),
-		types.StructFieldValue("scopeAttributes", types.JSONDocumentValueFromBytes(scopeAttributes)),
-		types.StructFieldValue("logAttributes", types.JSONDocumentValueFromBytes(recordAttributes)),
-	), nil
-}
-
 func (e *Exporter) createTable(ctx context.Context) error {
 	opts := []options.CreateTableOption{
 		options.WithColumn("timestamp", types.TypeTimestamp),
@@ -157,4 +119,42 @@ func (e *Exporter) createTable(ctx context.Context) error {
 					ExpireAfter(e.cfg.TTL)))
 	}
 	return e.client.CreateTable(ctx, e.cfg.Name, opts...)
+}
+
+func (e *Exporter) createRecord(resourceLog plog.ResourceLogs, record plog.LogRecord, scopeLog plog.ScopeLogs) (types.Value, error) {
+	var serviceName string
+	if v, ok := resourceLog.Resource().Attributes().Get(conventions.AttributeServiceName); ok {
+		serviceName = v.Str()
+	}
+	recordAttributes, err := json.Marshal(record.Attributes().AsRaw())
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
+	}
+	scopeAttributes, err := json.Marshal(scopeLog.Scope().Attributes().AsRaw())
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
+	}
+	resourceAttributes, err := json.Marshal(resourceLog.Resource().Attributes().AsRaw())
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
+	}
+
+	return types.StructValue(
+		types.StructFieldValue("timestamp", types.TimestampValueFromTime(record.Timestamp().AsTime())),
+		types.StructFieldValue("uuid", types.UTF8Value(uuid.New().String())),
+		types.StructFieldValue("traceId", types.UTF8Value(traceutil.TraceIDToHexOrEmptyString(record.TraceID()))),
+		types.StructFieldValue("spanId", types.UTF8Value(traceutil.SpanIDToHexOrEmptyString(record.SpanID()))),
+		types.StructFieldValue("traceFlags", types.Uint32Value(uint32(record.Flags()))),
+		types.StructFieldValue("severityText", types.UTF8Value(record.SeverityText())),
+		types.StructFieldValue("severityNumber", types.Int32Value(int32(record.SeverityNumber()))),
+		types.StructFieldValue("serviceName", types.UTF8Value(serviceName)),
+		types.StructFieldValue("body", types.OptionalValue(types.UTF8Value(record.Body().AsString()))),
+		types.StructFieldValue("resourceSchemaUrl", types.UTF8Value(resourceLog.SchemaUrl())),
+		types.StructFieldValue("resourceAttributes", types.JSONDocumentValueFromBytes(resourceAttributes)),
+		types.StructFieldValue("scopeSchemaUrl", types.UTF8Value(scopeLog.SchemaUrl())),
+		types.StructFieldValue("scopeName", types.UTF8Value(scopeLog.Scope().Name())),
+		types.StructFieldValue("scopeVersion", types.UTF8Value(scopeLog.Scope().Version())),
+		types.StructFieldValue("scopeAttributes", types.JSONDocumentValueFromBytes(scopeAttributes)),
+		types.StructFieldValue("logAttributes", types.JSONDocumentValueFromBytes(recordAttributes)),
+	), nil
 }

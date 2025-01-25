@@ -52,6 +52,25 @@ func (e *Exporter) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+func (e *Exporter) PushData(ctx context.Context, td ptrace.Traces) error {
+	var values []types.Value
+	for i := 0; i < td.ResourceSpans().Len(); i++ {
+		resourceSpans := td.ResourceSpans().At(i)
+		for j := 0; j < resourceSpans.ScopeSpans().Len(); j++ {
+			scopeSpans := resourceSpans.ScopeSpans().At(j)
+			for k := 0; k < scopeSpans.Spans().Len(); k++ {
+				span := scopeSpans.Spans().At(k)
+				value, err := e.createRecord(resourceSpans, scopeSpans, span)
+				if err != nil {
+					return err
+				}
+				values = append(values, value)
+			}
+		}
+	}
+	return e.client.BulkUpsert(ctx, e.cfg.Name, values)
+}
+
 func (e *Exporter) createTable(ctx context.Context) error {
 	opts := []options.CreateTableOption{
 		options.WithColumn("timestamp", types.TypeTimestamp),
@@ -94,39 +113,19 @@ func (e *Exporter) createTable(ctx context.Context) error {
 	return e.client.CreateTable(ctx, e.cfg.Name, opts...)
 }
 
-func (e *Exporter) PushData(ctx context.Context, td ptrace.Traces) error {
-	var values []types.Value
-	for i := 0; i < td.ResourceSpans().Len(); i++ {
-		resourceSpan := td.ResourceSpans().At(i)
-		for j := 0; j < resourceSpan.ScopeSpans().Len(); j++ {
-			scopeSpans := resourceSpan.ScopeSpans().At(j)
-			for k := 0; k < scopeSpans.Spans().Len(); k++ {
-				span := scopeSpans.Spans().At(k)
-				value, err := e.createRecord(resourceSpan, scopeSpans, span)
-				if err != nil {
-					return err
-				}
-				values = append(values, value)
-			}
-		}
-	}
-	return e.client.BulkUpsert(ctx, e.cfg.Name, values)
-}
-
-func (e *Exporter) createRecord(spans ptrace.ResourceSpans, scopeSpans ptrace.ScopeSpans, span ptrace.Span) (types.Value, error) {
+func (e *Exporter) createRecord(resourceSpans ptrace.ResourceSpans, scopeSpans ptrace.ScopeSpans, span ptrace.Span) (types.Value, error) {
 	var serviceName string
-	if v, ok := spans.Resource().Attributes().Get(conventions.AttributeServiceName); ok {
+	if v, ok := resourceSpans.Resource().Attributes().Get(conventions.AttributeServiceName); ok {
 		serviceName = v.Str()
 	}
-	resourceAttributes, err := json.Marshal(spans.Resource().Attributes().AsRaw())
+	resourceAttributes, err := json.Marshal(resourceSpans.Resource().Attributes().AsRaw())
 	if err != nil {
 		return nil, err
 	}
 	startTime := span.StartTimestamp().AsTime()
 	duration := span.EndTimestamp().AsTime().Sub(startTime)
 
-	spanAttributes := span.Attributes().AsRaw()
-	spanAttributesJSON, err := json.Marshal(spanAttributes)
+	spanAttributes, err := json.Marshal(span.Attributes().AsRaw())
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +154,7 @@ func (e *Exporter) createRecord(spans ptrace.ResourceSpans, scopeSpans ptrace.Sc
 		types.StructFieldValue("resourceAttributes", types.JSONDocumentValueFromBytes(resourceAttributes)),
 		types.StructFieldValue("scopeName", types.UTF8Value(scopeSpans.Scope().Name())),
 		types.StructFieldValue("scopeVersion", types.UTF8Value(scopeSpans.Scope().Version())),
-		types.StructFieldValue("spanAttributes", types.JSONDocumentValueFromBytes(spanAttributesJSON)),
+		types.StructFieldValue("spanAttributes", types.JSONDocumentValueFromBytes(spanAttributes)),
 		types.StructFieldValue("duration", types.Uint64Value(uint64(duration.Nanoseconds()))),
 		types.StructFieldValue("statusCode", types.UTF8Value(traceutil.StatusCodeStr(span.Status().Code()))),
 		types.StructFieldValue("statusMessage", types.UTF8Value(span.Status().Message())),
