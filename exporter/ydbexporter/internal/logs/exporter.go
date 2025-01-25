@@ -93,6 +93,10 @@ func (e *Exporter) createRecord(resourceLog plog.ResourceLogs, record plog.LogRe
 	if err != nil {
 		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
 	}
+	resourceAttributes, err := json.Marshal(resourceLog.Resource().Attributes().AsRaw())
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q", errCannotMarshal, err)
+	}
 
 	return types.StructValue(
 		types.StructFieldValue("timestamp", types.TimestampValueFromTime(record.Timestamp().AsTime())),
@@ -105,11 +109,12 @@ func (e *Exporter) createRecord(resourceLog plog.ResourceLogs, record plog.LogRe
 		types.StructFieldValue("serviceName", types.UTF8Value(serviceName)),
 		types.StructFieldValue("body", types.OptionalValue(types.UTF8Value(record.Body().AsString()))),
 		types.StructFieldValue("resourceSchemaUrl", types.UTF8Value(resourceLog.SchemaUrl())),
-		types.StructFieldValue("resourceAttributes", types.JSONDocumentValueFromBytes(recordAttributes)),
+		types.StructFieldValue("resourceAttributes", types.JSONDocumentValueFromBytes(resourceAttributes)),
 		types.StructFieldValue("scopeSchemaUrl", types.UTF8Value(scopeLog.SchemaUrl())),
 		types.StructFieldValue("scopeName", types.UTF8Value(scopeLog.Scope().Name())),
 		types.StructFieldValue("scopeVersion", types.UTF8Value(scopeLog.Scope().Version())),
 		types.StructFieldValue("scopeAttributes", types.JSONDocumentValueFromBytes(scopeAttributes)),
+		types.StructFieldValue("logAttributes", types.JSONDocumentValueFromBytes(recordAttributes)),
 	), nil
 }
 

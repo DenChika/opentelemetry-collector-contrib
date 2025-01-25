@@ -5,11 +5,9 @@ package logs
 
 import (
 	"context"
-	"os"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
 	"testing"
 	"time"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -54,12 +52,8 @@ func TestLogsExporter_New(t *testing.T) {
 }
 
 func TestLogsExporter_createTable(t *testing.T) {
-	if os.Getenv("RUN_DOCKER_TESTS") == "" {
-		t.Skip()
-	}
 	createTable := func(t *testing.T, endpoint string) error {
-		exporter, err := NewExporter(zaptest.NewLogger(t), withTestExporterConfig()(endpoint))
-		require.NoError(t, err)
+		exporter := newTestLogsExporter(t, defaultEndpoint)
 		return exporter.createTable(context.TODO())
 	}
 
@@ -70,32 +64,92 @@ func TestLogsExporter_createTable(t *testing.T) {
 }
 
 func TestLogsExporter_createRecord(t *testing.T) {
-	if os.Getenv("RUN_DOCKER_TESTS") == "" {
-		t.Skip()
-	}
-	t.Run("create record success", func(t *testing.T) {
-		exporter := newTestLogsExporter(t, defaultEndpoint)
-		_, err := exporter.createRecord(plog.NewResourceLogs(), plog.NewLogRecord(), plog.NewScopeLogs())
-		require.NoError(t, err)
+	t.Run("test check records metadata", func(t *testing.T) {
+		assertRecordData(t, func(t *testing.T, exporter *loggingExporter) {
+			mustPushLogsData(t, exporter, simpleLogs(1))
+
+			require.Equal(t, plog.SeverityNumber(1), exporter.lastUpsertedRecord.SeverityNumber())
+			require.Equal(t, "text", exporter.lastUpsertedRecord.SeverityText())
+			require.Equal(t, pcommon.SpanID{2, 3}, exporter.lastUpsertedRecord.SpanID())
+			require.Equal(t, pcommon.TraceID{4, 5}, exporter.lastUpsertedRecord.TraceID())
+			require.Equal(t, plog.LogRecordFlags(6), exporter.lastUpsertedRecord.Flags())
+		})
+	})
+	t.Run("test check resource metadata", func(t *testing.T) {
+		assertRecordData(t, func(t *testing.T, exporter *loggingExporter) {
+			mustPushLogsData(t, exporter, simpleLogs(1))
+
+			require.Equal(t,
+				"https://opentelemetry.io/schemas/1.4.0",
+				exporter.lastUpsertedResourceLog.SchemaUrl())
+		})
+	})
+	t.Run("test check scope metadata", func(t *testing.T) {
+		assertRecordData(t, func(t *testing.T, exporter *loggingExporter) {
+			mustPushLogsData(t, exporter, simpleLogs(1))
+
+			require.Equal(t,
+				"https://opentelemetry.io/schemas/1.7.0",
+				exporter.lastUpsertedScopeLog.SchemaUrl())
+
+			require.Equal(t,
+				"io.opentelemetry.contrib.ydb",
+				exporter.lastUpsertedScopeLog.Scope().Name())
+
+			require.Equal(t, "1.0.0", exporter.lastUpsertedScopeLog.Scope().Version())
+		})
+	})
+	t.Run("test check record attributes", func(t *testing.T) {
+		assertRecordData(t, func(t *testing.T, exporter *loggingExporter) {
+			mustPushLogsData(t, exporter, simpleLogs(1))
+
+			v, ok := exporter.lastUpsertedRecord.Attributes().Get(conventions.AttributeServiceName)
+			require.True(t, ok)
+			require.Equal(t, "v", v.Str())
+		})
+	})
+	t.Run("test check resource attributes", func(t *testing.T) {
+		assertRecordData(t, func(t *testing.T, exporter *loggingExporter) {
+			mustPushLogsData(t, exporter, simpleLogs(1))
+
+			v, ok := exporter.lastUpsertedResourceLog.Resource().Attributes().Get(conventions.AttributeServiceName)
+			require.True(t, ok)
+			require.Equal(t, "test-service", v.Str())
+		})
+	})
+	t.Run("test check scope attributes", func(t *testing.T) {
+		assertRecordData(t, func(t *testing.T, exporter *loggingExporter) {
+			mustPushLogsData(t, exporter, simpleLogs(1))
+
+			v, ok := exporter.lastUpsertedScopeLog.Scope().Attributes().Get("lib")
+			require.True(t, ok)
+			require.Equal(t, "ydb", v.Str())
+		})
 	})
 }
 
 func TestLogsExporter_PushData(t *testing.T) {
-	if os.Getenv("RUN_DOCKER_TESTS") == "" {
-		t.Skip()
-	}
 	t.Run("push data success", func(t *testing.T) {
 		exporter := newTestLogsExporter(t, defaultEndpoint)
-		mustPushLogsData(t, exporter, simpleLogs(1))
-		mustPushLogsData(t, exporter, simpleLogs(2))
+		loggingExporter := newLoggingExporter(exporter)
+
+		mustPushLogsData(t, loggingExporter, simpleLogs(1))
+		mustPushLogsData(t, loggingExporter, simpleLogs(2))
+		require.Equal(t, 3, loggingExporter.rows)
 	})
+}
+
+func assertRecordData(t *testing.T, assert func(*testing.T, *loggingExporter)) {
+	exporter := newTestLogsExporter(t, defaultEndpoint)
+	loggingExporter := newLoggingExporter(exporter)
+
+	assert(t, loggingExporter)
 }
 
 func newTestLogsExporter(t *testing.T, dsn string, fns ...func(*config.Config)) *Exporter {
 	exporter, err := NewExporter(zaptest.NewLogger(t), withTestExporterConfig(fns...)(dsn))
 	require.NoError(t, err)
 	require.NoError(t, exporter.Start(context.TODO(), nil))
-
 	t.Cleanup(func() {
 		err = exporter.Shutdown(context.TODO())
 		require.NoError(t, err)
@@ -118,7 +172,7 @@ func simpleLogs(count int) plog.Logs {
 	logs := plog.NewLogs()
 	rl := logs.ResourceLogs().AppendEmpty()
 	rl.SetSchemaUrl("https://opentelemetry.io/schemas/1.4.0")
-	rl.Resource().Attributes().PutStr("service.name", "test-service")
+	rl.Resource().Attributes().PutStr(conventions.AttributeServiceName, "test-service")
 	sl := rl.ScopeLogs().AppendEmpty()
 	sl.SetSchemaUrl("https://opentelemetry.io/schemas/1.7.0")
 	sl.Scope().SetName("io.opentelemetry.contrib.ydb")
@@ -127,12 +181,17 @@ func simpleLogs(count int) plog.Logs {
 	for i := 0; i < count; i++ {
 		r := sl.LogRecords().AppendEmpty()
 		r.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
+		r.SetSeverityNumber(1)
+		r.SetSeverityText("text")
+		r.SetSpanID([8]byte{2, 3})
+		r.SetTraceID([16]byte{4, 5})
+		r.SetFlags(6)
 		r.Attributes().PutStr(conventions.AttributeServiceName, "v")
 	}
 	return logs
 }
 
-func mustPushLogsData(t *testing.T, exporter *Exporter, ld plog.Logs) {
-	err := exporter.PushData(context.TODO(), ld)
+func mustPushLogsData(t *testing.T, exporter *loggingExporter, ld plog.Logs) {
+	err := exporter.pushData(context.TODO(), ld)
 	require.NoError(t, err)
 }
