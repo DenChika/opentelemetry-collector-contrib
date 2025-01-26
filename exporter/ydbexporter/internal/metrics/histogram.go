@@ -2,19 +2,20 @@ package metrics
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/ydbexporter/internal/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 	"go.opentelemetry.io/collector/pdata/pmetric"
-	"reflect"
+	"strings"
 )
 
 type histogram struct {
 }
 
 func (g *histogram) tableName(config *config.TableConfig) string {
-	return config.Name + "_histogram"
+	return config.Name + "_histogram_1"
 }
 
 func (g *histogram) createTableOptions(config *config.TableConfig) []options.CreateTableOption {
@@ -34,13 +35,11 @@ func (g *histogram) createTableOptions(config *config.TableConfig) []options.Cre
 		options.WithColumn("metricDescription", types.Optional(types.TypeUTF8)),
 		options.WithColumn("metricUnit", types.Optional(types.TypeUTF8)),
 		options.WithColumn("attributes", types.Optional(types.TypeJSONDocument)),
-		options.WithColumn("startTimeUnix", types.Optional(types.TypeTimestamp)),
-		options.WithColumn("timeUnix", types.Optional(types.TypeTimestamp)),
 
 		options.WithColumn("count", types.Optional(types.TypeUint64)),
 		options.WithColumn("sum", types.Optional(types.TypeDouble)),
-		options.WithColumn("bucketsCount", types.Optional(types.List(types.TypeUint64))),
-		options.WithColumn("explicitBounds", types.Optional(types.List(types.TypeDouble))),
+		options.WithColumn("bucketCounts", types.Optional(types.TypeUTF8)),
+		options.WithColumn("explicitBounds", types.Optional(types.TypeUTF8)),
 
 		options.WithColumn("flags", types.Optional(types.TypeUint32)),
 		options.WithColumn("min", types.Optional(types.TypeDouble)),
@@ -107,12 +106,11 @@ func (g *histogram) createRecords(resourceMetrics pmetric.ResourceMetrics, scope
 			types.StructFieldValue("metricDescription", types.UTF8Value(metric.Description())),
 			types.StructFieldValue("metricUnit", types.UTF8Value(metric.Unit())),
 			types.StructFieldValue("attributes", types.JSONDocumentValueFromBytes(attributes)),
-			types.StructFieldValue("startTimeUnix", types.DatetimeValueFromTime(dp.StartTimestamp().AsTime())),
-			types.StructFieldValue("timeUnix", types.DatetimeValueFromTime(dp.Timestamp().AsTime())),
+
 			types.StructFieldValue("count", types.Uint64Value(dp.Count())),
 			types.StructFieldValue("sum", types.DoubleValue(dp.Sum())),
-			types.StructFieldValue("bucketsCount", types.ListValue(getListValues(dp.BucketCounts().AsRaw())...)),
-			types.StructFieldValue("explicitBounds", types.ListValue(getListValues(dp.ExplicitBounds().AsRaw())...)),
+			types.StructFieldValue("bucketCounts", types.UTF8Value(getListValues(dp.BucketCounts().AsRaw()))),
+			types.StructFieldValue("explicitBounds", types.UTF8Value(getListValues(dp.ExplicitBounds().AsRaw()))),
 			types.StructFieldValue("flags", types.Uint32Value(uint32(dp.Flags()))),
 			types.StructFieldValue("min", types.DoubleValue(dp.Min())),
 			types.StructFieldValue("max", types.DoubleValue(dp.Max())),
@@ -127,33 +125,6 @@ type numeric interface {
 	~uint64 | ~float64
 }
 
-func getListValues[T numeric](dp []T) []types.Value {
-	var value types.Type
-
-	if len(dp) == 0 {
-		return []types.Value{}
-	}
-
-	switch reflect.TypeOf(dp[0]).Kind() {
-	case reflect.Uint64:
-		value = types.TypeUint64
-	case reflect.Float64:
-		value = types.TypeDouble
-	default:
-		value = types.TypeUnknown
-	}
-
-	values := make([]types.Value, len(dp))
-	for i, v := range dp {
-		switch value {
-		case types.TypeUint64:
-			values[i] = types.Uint64Value(uint64(v))
-		case types.TypeDouble:
-			values[i] = types.DoubleValue(float64(v))
-		default:
-			values[i] = types.ZeroValue(types.TypeUnknown)
-		}
-	}
-
-	return values
+func getListValues[T numeric](dp []T) string {
+	return strings.Join(strings.Fields(fmt.Sprint(dp)), ",")
 }

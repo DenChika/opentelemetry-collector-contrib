@@ -244,3 +244,34 @@ func mustPushTracesData(t *testing.T, exporter *loggingExporter, td ptrace.Trace
 	err := exporter.pushData(context.TODO(), td)
 	require.NoError(t, err)
 }
+
+type loggingExporter struct {
+	exporter                 *Exporter
+	rows                     int
+	lastUpsertedResourceSpan ptrace.ResourceSpans
+	lastUpsertedScopeSpan    ptrace.ScopeSpans
+	lastUpsertedSpan         ptrace.Span
+}
+
+func newLoggingExporter(exporter *Exporter) *loggingExporter {
+	return &loggingExporter{exporter: exporter}
+}
+
+func (l *loggingExporter) pushData(ctx context.Context, td ptrace.Traces) error {
+	for i := 0; i < td.ResourceSpans().Len(); i++ {
+		resourceSpan := td.ResourceSpans().At(i)
+		for j := 0; j < resourceSpan.ScopeSpans().Len(); j++ {
+			scopeSpans := resourceSpan.ScopeSpans().At(j)
+			for k := 0; k < scopeSpans.Spans().Len(); k++ {
+				span := scopeSpans.Spans().At(k)
+
+				l.lastUpsertedResourceSpan = resourceSpan
+				l.lastUpsertedScopeSpan = scopeSpans
+				l.lastUpsertedSpan = span
+				l.rows++
+			}
+		}
+	}
+
+	return l.exporter.PushData(ctx, td)
+}

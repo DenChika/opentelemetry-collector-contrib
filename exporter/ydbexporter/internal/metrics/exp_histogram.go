@@ -15,7 +15,7 @@ type expHistogram struct {
 }
 
 func (g *expHistogram) tableName(config *config.TableConfig) string {
-	return config.Name + "_exponential_histogram"
+	return config.Name + "_exponential_histogram_1"
 }
 
 func (g *expHistogram) createTableOptions(config *config.TableConfig) []options.CreateTableOption {
@@ -35,17 +35,15 @@ func (g *expHistogram) createTableOptions(config *config.TableConfig) []options.
 		options.WithColumn("metricDescription", types.Optional(types.TypeUTF8)),
 		options.WithColumn("metricUnit", types.Optional(types.TypeUTF8)),
 		options.WithColumn("attributes", types.Optional(types.TypeJSONDocument)),
-		options.WithColumn("startTimeUnix", types.Optional(types.TypeTimestamp)),
-		options.WithColumn("timeUnix", types.Optional(types.TypeTimestamp)),
 
 		options.WithColumn("count", types.Optional(types.TypeUint64)),
 		options.WithColumn("sum", types.Optional(types.TypeDouble)),
 		options.WithColumn("scale", types.Optional(types.TypeInt32)),
 		options.WithColumn("zeroCount", types.Optional(types.TypeUint64)),
 		options.WithColumn("positiveOffset", types.Optional(types.TypeInt32)),
-		options.WithColumn("positiveBucketCounts", types.Optional(types.List(types.TypeUint64))),
+		options.WithColumn("positiveBucketCounts", types.Optional(types.TypeUTF8)),
 		options.WithColumn("negativeOffset", types.Optional(types.TypeInt32)),
-		options.WithColumn("negativeBucketsCounts", types.Optional(types.List(types.TypeUint64))),
+		options.WithColumn("negativeBucketCounts", types.Optional(types.TypeUTF8)),
 
 		options.WithColumn("flags", types.Optional(types.TypeUint32)),
 		options.WithColumn("min", types.Optional(types.TypeDouble)),
@@ -112,16 +110,14 @@ func (g *expHistogram) createRecords(resourceMetrics pmetric.ResourceMetrics, sc
 			types.StructFieldValue("metricDescription", types.UTF8Value(metric.Description())),
 			types.StructFieldValue("metricUnit", types.UTF8Value(metric.Unit())),
 			types.StructFieldValue("attributes", types.JSONDocumentValueFromBytes(attributes)),
-			types.StructFieldValue("startTimeUnix", types.DatetimeValueFromTime(dp.StartTimestamp().AsTime())),
-			types.StructFieldValue("timeUnix", types.DatetimeValueFromTime(dp.Timestamp().AsTime())),
 			types.StructFieldValue("count", types.Uint64Value(dp.Count())),
 			types.StructFieldValue("sum", types.DoubleValue(dp.Sum())),
 			types.StructFieldValue("scale", types.Int32Value(dp.Scale())),
 			types.StructFieldValue("zeroCount", types.Uint64Value(dp.ZeroCount())),
 			types.StructFieldValue("positiveOffset", types.Int32Value(dp.Positive().Offset())),
-			types.StructFieldValue("positiveBucketCounts", types.ListValue(getListValues(dp.Positive().BucketCounts().AsRaw())...)),
+			types.StructFieldValue("positiveBucketCounts", types.UTF8Value(getListValues(dp.Positive().BucketCounts().AsRaw()))),
 			types.StructFieldValue("negativeOffset", types.Int32Value(dp.Positive().Offset())),
-			types.StructFieldValue("negativeBucketCounts", types.ListValue(getListValues(dp.Positive().BucketCounts().AsRaw())...)),
+			types.StructFieldValue("negativeBucketCounts", types.UTF8Value(getListValues(dp.Positive().BucketCounts().AsRaw()))),
 			types.StructFieldValue("flags", types.Uint32Value(uint32(dp.Flags()))),
 			types.StructFieldValue("min", types.DoubleValue(dp.Min())),
 			types.StructFieldValue("max", types.DoubleValue(dp.Max())),

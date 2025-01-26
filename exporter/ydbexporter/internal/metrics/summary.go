@@ -34,8 +34,6 @@ func (g *summary) createTableOptions(config *config.TableConfig) []options.Creat
 		options.WithColumn("metricDescription", types.Optional(types.TypeUTF8)),
 		options.WithColumn("metricUnit", types.Optional(types.TypeUTF8)),
 		options.WithColumn("attributes", types.Optional(types.TypeJSONDocument)),
-		options.WithColumn("startTimeUnix", types.Optional(types.TypeTimestamp)),
-		options.WithColumn("timeUnix", types.Optional(types.TypeTimestamp)),
 
 		options.WithColumn("count", types.Optional(types.TypeUint64)),
 		options.WithColumn("sum", types.Optional(types.TypeDouble)),
@@ -103,8 +101,6 @@ func (g *summary) createRecords(resourceMetrics pmetric.ResourceMetrics, scopeMe
 			types.StructFieldValue("metricDescription", types.UTF8Value(metric.Description())),
 			types.StructFieldValue("metricUnit", types.UTF8Value(metric.Unit())),
 			types.StructFieldValue("attributes", types.JSONDocumentValueFromBytes(attributes)),
-			types.StructFieldValue("startTimeUnix", types.DatetimeValueFromTime(dp.StartTimestamp().AsTime())),
-			types.StructFieldValue("timeUnix", types.DatetimeValueFromTime(dp.Timestamp().AsTime())),
 			types.StructFieldValue("count", types.Uint64Value(dp.Count())),
 			types.StructFieldValue("sum", types.DoubleValue(dp.Sum())),
 			types.StructFieldValue("flags", types.Uint32Value(uint32(dp.Flags()))),
