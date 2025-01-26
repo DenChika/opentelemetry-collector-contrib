@@ -15,7 +15,7 @@ type expHistogram struct {
 }
 
 func (g *expHistogram) tableName(config *config.TableConfig) string {
-	return config.Name + "_exponential_histogram_1"
+	return config.Name + "_exponential_histogram"
 }
 
 func (g *expHistogram) createTableOptions(config *config.TableConfig) []options.CreateTableOption {

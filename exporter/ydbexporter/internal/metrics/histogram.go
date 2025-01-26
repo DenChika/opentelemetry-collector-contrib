@@ -15,7 +15,7 @@ type histogram struct {
 }
 
 func (g *histogram) tableName(config *config.TableConfig) string {
-	return config.Name + "_histogram_1"
+	return config.Name + "_histogram"
 }
 
 func (g *histogram) createTableOptions(config *config.TableConfig) []options.CreateTableOption {
